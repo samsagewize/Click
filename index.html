@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cursor Apocalypse</title>
+
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        background: #000;
+        overflow: hidden;
+        cursor: none; /* Hide real cursor */
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .cursor {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        pointer-events: none;
+        background: url("https://cur.cursors-4u.net/cursors/cur-9/cur817.cur")
+          no-repeat center center;
+        background-size: 100%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        will-change: transform;
+        transition: opacity 1.2s ease-out;
+      }
+
+      .cursor.fade-out {
+        opacity: 0;
+      }
+
+      h1 {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #0ff;
+        font-size: 4.5vw;
+        text-shadow: 0 0 15px #0ff;
+        pointer-events: none;
+        user-select: none;
+        text-align: center;
+        line-height: 1.1;
+      }
+
+      .count {
+        position: fixed;
+        top: 20px;
+        right: 30px;
+        color: #fff;
+        font-size: 1.8rem;
+        text-shadow: 0 0 10px #f0f;
+        z-index: 10000;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="count" id="count">Cursors: 1</div>
+    <h1>click anywhere...<br />good luck</h1>
+
+    <script>
+      // We'll keep the original cursor too
+      let cursorCount = 1;
+      const countDisplay = document.getElementById("count");
+      const cursors = []; // array of {element, offsetX, offsetY, life}
+
+      document.addEventListener("mousemove", (e) => {
+        // Move original cursor
+        if (cursors.length > 0) {
+          cursors[0].element.style.left = e.clientX + "px";
+          cursors[0].element.style.top = e.clientY + "px";
+        }
+
+        // All fake cursors follow with delay & chaos
+        cursors.forEach((c, i) => {
+          if (i === 0) return; // skip real one
+
+          // Add some personality / delay / randomness
+          const delay = 60 + i * 8;
+          const chaos = Math.sin(Date.now() * 0.001 + i) * 12;
+
+          setTimeout(() => {
+            c.element.style.left = e.clientX + c.offsetX + chaos + "px";
+            c.element.style.top = e.clientY + c.offsetY + chaos + "px";
+          }, delay);
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        cursorCount++;
+        countDisplay.textContent = `Cursors: ${cursorCount}`;
+
+        // Create new cursed cursor
+        const newCursor = document.createElement("div");
+        newCursor.className = "cursor";
+
+        // Random offset so they don't all stack perfectly
+        const offsetX = (Math.random() - 0.5) * 80;
+        const offsetY = (Math.random() - 0.5) * 80;
+
+        newCursor.style.left = e.clientX + "px";
+        newCursor.style.top = e.clientY + "px";
+
+        document.body.appendChild(newCursor);
+
+        cursors.push({
+          element: newCursor,
+          offsetX,
+          offsetY,
+          life: 0,
+        });
+
+        // Optional: make oldest cursors slowly disappear (uncomment if you want mercy)
+        /*
+  if (cursors.length > 80) {
+    const oldest = cursors.shift();
+    oldest.element.classList.add('fade-out');
+    setTimeout(() => oldest.element.remove(), 1500);
+  }
+  */
+      });
+    </script>
+  </body>
+</html>
