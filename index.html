@@ -24,7 +24,7 @@
     inset: 0;
     z-index: 1;
     pointer-events: none;
-    opacity: 0.25;
+    opacity: 0;
     transition: opacity 0.6s;
   }
 
@@ -72,7 +72,7 @@
   .count {
     position: fixed;
     top: 20px;
-    right: 80px;
+    right: 180px;
     color: #fff;
     font-size: 2rem;
     font-weight: bold;
@@ -81,23 +81,42 @@
     pointer-events: none;
   }
 
-  #maze-toggle {
+  .top-controls {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 10001;
-    padding: 8px 16px;
-    background: rgba(0,255,255,0.2);
+    display: flex;
+    gap: 15px;
+  }
+
+  .control-btn {
+    padding: 10px 20px;
+    background: rgba(0,255,255,0.25);
     border: 2px solid #0ff;
     color: #0ff;
     font-weight: bold;
+    font-size: 1.1rem;
     cursor: pointer;
-    border-radius: 6px;
-    backdrop-filter: blur(4px);
+    border-radius: 8px;
+    backdrop-filter: blur(6px);
+    transition: all 0.3s;
   }
 
-  #maze-toggle:hover {
-    background: rgba(0,255,255,0.4);
+  .control-btn:hover {
+    background: rgba(0,255,255,0.45);
+    box-shadow: 0 0 20px rgba(0,255,255,0.6);
+  }
+
+  #share-score {
+    background: rgba(255,215,0,0.25);
+    border-color: #ffd700;
+    color: #ffd700;
+  }
+
+  #share-score:hover {
+    background: rgba(255,215,0,0.45);
   }
 </style>
 </head>
@@ -106,7 +125,11 @@
 <canvas id="maze"></canvas>
 
 <div class="count" id="count">Cursors: 1</div>
-<button id="maze-toggle">Maze: ON</button>
+
+<div class="top-controls">
+  <button id="maze-toggle" class="control-btn">Maze: OFF</button>
+  <button id="share-score" class="control-btn">Share Score</button>
+</div>
 
 <div id="instruction">click everywhere...<br>embrace the chaos</div>
 
@@ -118,9 +141,9 @@ const instruction = document.getElementById('instruction');
 const cursors = [];
 const mazeCanvas = document.getElementById('maze');
 const ctx = mazeCanvas.getContext('2d');
-let mazeVisible = true;
+let mazeVisible = false; // STARTS OFF
 
-// ── Maze Generation (simple recursive division) ─────────────
+// ── Maze ────────────────────────────────────────────────────
 function resizeMaze() {
   mazeCanvas.width = window.innerWidth;
   mazeCanvas.height = window.innerHeight;
@@ -138,7 +161,6 @@ function drawMaze() {
   ctx.shadowBlur = 10;
   ctx.shadowColor = '#0ff';
 
-  // Very simple random maze-like lines
   for (let x = 0; x < w; x += cellSize) {
     for (let y = 0; y < h; y += cellSize) {
       if (Math.random() > 0.4) {
@@ -164,11 +186,55 @@ window.addEventListener('resize', () => {
 resizeMaze();
 drawMaze();
 
-// ── Toggle Maze ─────────────────────────────────────────────
+// ── Maze Toggle ─────────────────────────────────────────────
 document.getElementById('maze-toggle').addEventListener('click', () => {
   mazeVisible = !mazeVisible;
   document.getElementById('maze-toggle').textContent = `Maze: ${mazeVisible ? 'ON' : 'OFF'}`;
   mazeCanvas.style.opacity = mazeVisible ? '0.25' : '0';
+});
+
+// ── Share Score (download screenshot) ───────────────────────
+document.getElementById('share-score').addEventListener('click', () => {
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = 600;
+  tempCanvas.height = 400;
+  const tctx = tempCanvas.getContext('2d');
+
+  // Background
+  tctx.fillStyle = '#0a0015';
+  tctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+  // Gradient glow
+  const gradient = tctx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
+  gradient.addColorStop(0, 'rgba(0,255,255,0.15)');
+  gradient.addColorStop(1, 'rgba(255,0,255,0.15)');
+  tctx.fillStyle = gradient;
+  tctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+  // Text
+  tctx.font = 'bold 60px Arial';
+  tctx.fillStyle = '#00ffff';
+  tctx.textAlign = 'center';
+  tctx.shadowColor = '#0ff';
+  tctx.shadowBlur = 20;
+  tctx.fillText('CURSOR CHAOS', tempCanvas.width/2, 120);
+
+  tctx.font = 'bold 100px Arial';
+  tctx.fillStyle = '#fff';
+  tctx.shadowColor = '#f0f';
+  tctx.shadowBlur = 30;
+  tctx.fillText(cursorCount.toString(), tempCanvas.width/2, 240);
+
+  tctx.font = 'bold 40px Arial';
+  tctx.fillStyle = '#ffd700';
+  tctx.shadowBlur = 15;
+  tctx.fillText('CLICKS', tempCanvas.width/2, 320);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = 'cursor-chaos-score.png';
+  link.href = tempCanvas.toDataURL('image/png');
+  link.click();
 });
 
 // ── Cursor Logic ────────────────────────────────────────────
@@ -191,16 +257,17 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('click', (e) => {
+  // Prevent spawning when clicking buttons
+  if (e.target.tagName === 'BUTTON') return;
+
   cursorCount++;
   countDisplay.textContent = `Cursors: ${cursorCount}`;
 
-  // After 2 clicks → hide big text, show small version
   if (cursorCount === 2) {
     instruction.classList.add('small');
     instruction.textContent = "keep clicking...";
   }
 
-  // Spawn new cursor
   const newCursor = document.createElement('div');
   newCursor.className = 'cursor';
   const offsetX = (Math.random() - 0.5) * 100;
@@ -213,7 +280,6 @@ document.addEventListener('click', (e) => {
 
   // Confetti
   const colors = ['#ff0', '#f0f', '#0ff', '#ff69b4', '#00ff9d', '#fff200', '#ff3366'];
-
   confetti({
     particleCount: 80,
     spread: 100,
@@ -222,7 +288,6 @@ document.addEventListener('click', (e) => {
     colors,
     ticks: 500
   });
-
   confetti({
     particleCount: 40,
     angle: 60,
@@ -230,7 +295,6 @@ document.addEventListener('click', (e) => {
     origin: { x: (e.clientX - 100) / window.innerWidth, y: e.clientY / window.innerHeight },
     colors
   });
-
   confetti({
     particleCount: 40,
     angle: 120,
@@ -242,6 +306,9 @@ document.addEventListener('click', (e) => {
 
 // Mobile support
 document.addEventListener('touchstart', (e) => {
+  const target = e.target;
+  if (target.tagName === 'BUTTON') return;
+  
   e.preventDefault();
   const touch = e.touches[0];
   const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
