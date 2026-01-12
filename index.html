@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Cursor + Confetti + Maze Chaos</title>
+<title>Cursor Chaos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
@@ -72,7 +72,7 @@
   .count {
     position: fixed;
     top: 20px;
-    right: 180px;
+    right: 320px;
     color: #fff;
     font-size: 2rem;
     font-weight: bold;
@@ -109,6 +109,16 @@
     box-shadow: 0 0 20px rgba(0,255,255,0.6);
   }
 
+  #share-x {
+    background: rgba(29,161,242,0.25);
+    border-color: #1da1f2;
+    color: #1da1f2;
+  }
+
+  #share-x:hover {
+    background: rgba(29,161,242,0.45);
+  }
+
   #share-score {
     background: rgba(255,215,0,0.25);
     border-color: #ffd700;
@@ -128,7 +138,8 @@
 
 <div class="top-controls">
   <button id="maze-toggle" class="control-btn">Maze: OFF</button>
-  <button id="share-score" class="control-btn">Share Score</button>
+  <button id="share-x" class="control-btn">Share to X</button>
+  <button id="share-score" class="control-btn">Share Score (PNG)</button>
 </div>
 
 <div id="instruction">click everywhere...<br>embrace the chaos</div>
@@ -141,7 +152,7 @@ const instruction = document.getElementById('instruction');
 const cursors = [];
 const mazeCanvas = document.getElementById('maze');
 const ctx = mazeCanvas.getContext('2d');
-let mazeVisible = false; // STARTS OFF
+let mazeVisible = false;
 
 // ── Maze ────────────────────────────────────────────────────
 function resizeMaze() {
@@ -193,25 +204,31 @@ document.getElementById('maze-toggle').addEventListener('click', () => {
   mazeCanvas.style.opacity = mazeVisible ? '0.25' : '0';
 });
 
-// ── Share Score (download screenshot) ───────────────────────
+// ── Share to X ──────────────────────────────────────────────
+document.getElementById('share-x').addEventListener('click', () => {
+  const text = `I survived ${cursorCount} clicks in Cursor Chaos! 🖱️💥 How many can you handle?`;
+  const url = encodeURIComponent(window.location.href);
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}&hashtags=CursorChaos,ClickerGame`;
+  
+  window.open(tweetUrl, '_blank', 'width=550,height=450');
+});
+
+// ── Share Score PNG ─────────────────────────────────────────
 document.getElementById('share-score').addEventListener('click', () => {
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = 600;
   tempCanvas.height = 400;
   const tctx = tempCanvas.getContext('2d');
 
-  // Background
   tctx.fillStyle = '#0a0015';
   tctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-  // Gradient glow
   const gradient = tctx.createLinearGradient(0, 0, tempCanvas.width, tempCanvas.height);
   gradient.addColorStop(0, 'rgba(0,255,255,0.15)');
   gradient.addColorStop(1, 'rgba(255,0,255,0.15)');
   tctx.fillStyle = gradient;
   tctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-  // Text
   tctx.font = 'bold 60px Arial';
   tctx.fillStyle = '#00ffff';
   tctx.textAlign = 'center';
@@ -230,7 +247,6 @@ document.getElementById('share-score').addEventListener('click', () => {
   tctx.shadowBlur = 15;
   tctx.fillText('CLICKS', tempCanvas.width/2, 320);
 
-  // Download
   const link = document.createElement('a');
   link.download = 'cursor-chaos-score.png';
   link.href = tempCanvas.toDataURL('image/png');
@@ -257,7 +273,6 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-  // Prevent spawning when clicking buttons
   if (e.target.tagName === 'BUTTON') return;
 
   cursorCount++;
@@ -278,7 +293,6 @@ document.addEventListener('click', (e) => {
   document.body.appendChild(newCursor);
   cursors.push({ element: newCursor, offsetX, offsetY });
 
-  // Confetti
   const colors = ['#ff0', '#f0f', '#0ff', '#ff69b4', '#00ff9d', '#fff200', '#ff3366'];
   confetti({
     particleCount: 80,
@@ -306,15 +320,19 @@ document.addEventListener('click', (e) => {
 
 // Mobile support
 document.addEventListener('touchstart', (e) => {
-  const target = e.target;
-  if (target.tagName === 'BUTTON') return;
-  
+  if (e.target.tagName === 'BUTTON') return;
   e.preventDefault();
   const touch = e.touches[0];
   const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
   document.dispatchEvent(new MouseEvent('click', fakeEvent));
 }, { passive: false });
 
+  <div id="winamp" style="position:fixed;bottom:20px;right:20px;z-index:9998;width:275px;height:116px;"></div>
+<script src="https://unpkg.com/webamp@1.4.2/built/webamp.bundle.min.js"></script>
+<script>
+new Webamp({}).renderWhenReady(document.getElementById('winamp'));
 </script>
+  
+
 </body>
 </html>
