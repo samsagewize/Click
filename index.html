@@ -1,128 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cursor Apocalypse</title>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cursor Apocalypse + Confetti Chaos</title>
 
-    <style>
-      body {
-        margin: 0;
-        height: 100vh;
-        background: #000;
-        overflow: hidden;
-        cursor: none; /* Hide real cursor */
-        font-family: Arial, Helvetica, sans-serif;
-      }
+<!-- Confetti library -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
-      .cursor {
-        position: absolute;
-        width: 32px;
-        height: 32px;
-        pointer-events: none;
-        background: url("https://cur.cursors-4u.net/cursors/cur-9/cur817.cur")
-          no-repeat center center;
-        background-size: 100%;
-        transform: translate(-50%, -50%);
-        z-index: 9999;
-        will-change: transform;
-        transition: opacity 1.2s ease-out;
-      }
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: #000;
+    overflow: hidden;
+    cursor: none;           /* Hide real cursor */
+    font-family: Arial, Helvetica, sans-serif;
+    touch-action: none;     /* Better mobile experience */
+  }
 
-      .cursor.fade-out {
-        opacity: 0;
-      }
+  .cursor {
+    position: absolute;
+    width: 38px;
+    height: 38px;
+    pointer-events: none;
+    background: url('https://cur.cursors-4u.net/cursors/cur-9/cur817.cur') no-repeat center center;
+    background-size: contain;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    will-change: transform;
+    transition: opacity 2s ease-out;
+  }
 
-      h1 {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #0ff;
-        font-size: 4.5vw;
-        text-shadow: 0 0 15px #0ff;
-        pointer-events: none;
-        user-select: none;
-        text-align: center;
-        line-height: 1.1;
-      }
+  .cursor.fade-out {
+    opacity: 0;
+  }
 
-      .count {
-        position: fixed;
-        top: 20px;
-        right: 30px;
-        color: #fff;
-        font-size: 1.8rem;
-        text-shadow: 0 0 10px #f0f;
-        z-index: 10000;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="count" id="count">Cursors: 1</div>
-    <h1>click anywhere...<br />good luck</h1>
+  h1 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #0ff;
+    font-size: clamp(2.5rem, 7vw, 5.5rem);
+    text-shadow: 0 0 20px #0ff, 0 0 40px #f0f;
+    pointer-events: none;
+    user-select: none;
+    text-align: center;
+    line-height: 1.1;
+    z-index: 10;
+  }
 
-    <script>
-      // We'll keep the original cursor too
-      let cursorCount = 1;
-      const countDisplay = document.getElementById("count");
-      const cursors = []; // array of {element, offsetX, offsetY, life}
+  .count {
+    position: fixed;
+    top: 20px;
+    right: 30px;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: bold;
+    text-shadow: 0 0 15px #f0f, 0 0 30px #0ff;
+    z-index: 10000;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
 
-      document.addEventListener("mousemove", (e) => {
-        // Move original cursor
-        if (cursors.length > 0) {
-          cursors[0].element.style.left = e.clientX + "px";
-          cursors[0].element.style.top = e.clientY + "px";
-        }
+<div class="count" id="count">Cursors: 1</div>
+<h1>click everywhere...<br>embrace the chaos</h1>
 
-        // All fake cursors follow with delay & chaos
-        cursors.forEach((c, i) => {
-          if (i === 0) return; // skip real one
+<script>
+// Cursor tracking
+let cursorCount = 1;
+const countDisplay = document.getElementById('count');
+const cursors = []; // {element, offsetX, offsetY}
 
-          // Add some personality / delay / randomness
-          const delay = 60 + i * 8;
-          const chaos = Math.sin(Date.now() * 0.001 + i) * 12;
+document.addEventListener('mousemove', (e) => {
+  // Move "real" cursor (first one)
+  if (cursors.length > 0) {
+    cursors[0].element.style.left = e.clientX + 'px';
+    cursors[0].element.style.top  = e.clientY + 'px';
+  }
 
-          setTimeout(() => {
-            c.element.style.left = e.clientX + c.offsetX + chaos + "px";
-            c.element.style.top = e.clientY + c.offsetY + chaos + "px";
-          }, delay);
-        });
-      });
+  // Fake cursors follow with delay + wobble
+  cursors.forEach((c, i) => {
+    if (i === 0) return;
+    
+    const delay = 40 + i * 6;
+    const wobble = Math.sin(Date.now() * 0.002 + i) * 14;
 
-      document.addEventListener("click", (e) => {
-        cursorCount++;
-        countDisplay.textContent = `Cursors: ${cursorCount}`;
+    setTimeout(() => {
+      c.element.style.left = (e.clientX + c.offsetX + wobble) + 'px';
+      c.element.style.top  = (e.clientY + c.offsetY + wobble) + 'px';
+    }, delay);
+  });
+});
 
-        // Create new cursed cursor
-        const newCursor = document.createElement("div");
-        newCursor.className = "cursor";
+// ================== CLICK = CURSOR + CONFETTI ==================
+document.addEventListener('click', (e) => {
+  cursorCount++;
+  countDisplay.textContent = `Cursors: ${cursorCount}`;
 
-        // Random offset so they don't all stack perfectly
-        const offsetX = (Math.random() - 0.5) * 80;
-        const offsetY = (Math.random() - 0.5) * 80;
+  // 1. Spawn new cursed cursor
+  const newCursor = document.createElement('div');
+  newCursor.className = 'cursor';
+  
+  const offsetX = (Math.random() - 0.5) * 100;
+  const offsetY = (Math.random() - 0.5) * 100;
+  
+  newCursor.style.left = e.clientX + 'px';
+  newCursor.style.top  = e.clientY + 'px';
 
-        newCursor.style.left = e.clientX + "px";
-        newCursor.style.top = e.clientY + "px";
+  document.body.appendChild(newCursor);
 
-        document.body.appendChild(newCursor);
+  cursors.push({ element: newCursor, offsetX, offsetY });
 
-        cursors.push({
-          element: newCursor,
-          offsetX,
-          offsetY,
-          life: 0,
-        });
+  // 2. Confetti explosion!
+  const colors = ['#ff0', '#f0f', '#0ff', '#ff69b4', '#00ff9d', '#fff200', '#ff3366'];
 
-        // Optional: make oldest cursors slowly disappear (uncomment if you want mercy)
-        /*
-  if (cursors.length > 80) {
+  // Big central burst
+  confetti({
+    particleCount: 80,
+    spread: 100,
+    startVelocity: 45,
+    origin: { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight },
+    colors,
+    ticks: 500
+  });
+
+  // Side sprays
+  confetti({
+    particleCount: 40,
+    angle: 60,
+    spread: 80,
+    origin: { x: (e.clientX - 100) / window.innerWidth, y: e.clientY / window.innerHeight },
+    colors
+  });
+
+  confetti({
+    particleCount: 40,
+    angle: 120,
+    spread: 80,
+    origin: { x: (e.clientX + 100) / window.innerWidth, y: e.clientY / window.innerHeight },
+    colors
+  });
+
+  // Optional mercy (uncomment if you want oldest cursors to disappear after ~120)
+  /*
+  if (cursors.length > 120) {
     const oldest = cursors.shift();
     oldest.element.classList.add('fade-out');
-    setTimeout(() => oldest.element.remove(), 1500);
+    setTimeout(() => oldest.element.remove(), 2200);
   }
   */
-      });
-    </script>
-  </body>
+});
+
+// Mobile/touch support
+document.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
+  document.dispatchEvent(new MouseEvent('click', fakeEvent));
+}, { passive: false });
+
+</script>
+</body>
 </html>
