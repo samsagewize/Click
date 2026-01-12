@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Cursor Apocalypse + Confetti Chaos</title>
+<title>Cursor + Confetti + Maze Chaos</title>
 
-<!-- Confetti library -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
 <style>
@@ -14,9 +13,19 @@
     height: 100vh;
     background: #000;
     overflow: hidden;
-    cursor: none;           /* Hide real cursor */
+    cursor: none;
     font-family: Arial, Helvetica, sans-serif;
-    touch-action: none;     /* Better mobile experience */
+    touch-action: none;
+    position: relative;
+  }
+
+  canvas#maze {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.25;
+    transition: opacity 0.6s;
   }
 
   .cursor {
@@ -36,7 +45,7 @@
     opacity: 0;
   }
 
-  h1 {
+  #instruction {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -49,12 +58,21 @@
     text-align: center;
     line-height: 1.1;
     z-index: 10;
+    transition: all 0.8s ease;
+  }
+
+  #instruction.small {
+    font-size: 1.6rem;
+    top: 20px;
+    left: 20px;
+    transform: none;
+    opacity: 0.7;
   }
 
   .count {
     position: fixed;
     top: 20px;
-    right: 30px;
+    right: 80px;
     color: #fff;
     font-size: 2rem;
     font-weight: bold;
@@ -62,30 +80,106 @@
     z-index: 10000;
     pointer-events: none;
   }
+
+  #maze-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    padding: 8px 16px;
+    background: rgba(0,255,255,0.2);
+    border: 2px solid #0ff;
+    color: #0ff;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
+  }
+
+  #maze-toggle:hover {
+    background: rgba(0,255,255,0.4);
+  }
 </style>
 </head>
 <body>
 
+<canvas id="maze"></canvas>
+
 <div class="count" id="count">Cursors: 1</div>
-<h1>click everywhere...<br>embrace the chaos</h1>
+<button id="maze-toggle">Maze: ON</button>
+
+<div id="instruction">click everywhere...<br>embrace the chaos</div>
 
 <script>
-// Cursor tracking
+// ── Variables ───────────────────────────────────────────────
 let cursorCount = 1;
 const countDisplay = document.getElementById('count');
-const cursors = []; // {element, offsetX, offsetY}
+const instruction = document.getElementById('instruction');
+const cursors = [];
+const mazeCanvas = document.getElementById('maze');
+const ctx = mazeCanvas.getContext('2d');
+let mazeVisible = true;
 
+// ── Maze Generation (simple recursive division) ─────────────
+function resizeMaze() {
+  mazeCanvas.width = window.innerWidth;
+  mazeCanvas.height = window.innerHeight;
+}
+
+function drawMaze() {
+  ctx.clearRect(0, 0, mazeCanvas.width, mazeCanvas.height);
+  if (!mazeVisible) return;
+
+  const w = mazeCanvas.width;
+  const h = mazeCanvas.height;
+  const cellSize = 40;
+  ctx.strokeStyle = '#00ffff';
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = '#0ff';
+
+  // Very simple random maze-like lines
+  for (let x = 0; x < w; x += cellSize) {
+    for (let y = 0; y < h; y += cellSize) {
+      if (Math.random() > 0.4) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + cellSize, y + cellSize * (Math.random() > 0.5 ? 1 : -1));
+        ctx.stroke();
+      }
+      if (Math.random() > 0.5) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + cellSize * (Math.random() > 0.5 ? 1 : -1), y + cellSize);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+window.addEventListener('resize', () => {
+  resizeMaze();
+  drawMaze();
+});
+resizeMaze();
+drawMaze();
+
+// ── Toggle Maze ─────────────────────────────────────────────
+document.getElementById('maze-toggle').addEventListener('click', () => {
+  mazeVisible = !mazeVisible;
+  document.getElementById('maze-toggle').textContent = `Maze: ${mazeVisible ? 'ON' : 'OFF'}`;
+  mazeCanvas.style.opacity = mazeVisible ? '0.25' : '0';
+});
+
+// ── Cursor Logic ────────────────────────────────────────────
 document.addEventListener('mousemove', (e) => {
-  // Move "real" cursor (first one)
   if (cursors.length > 0) {
     cursors[0].element.style.left = e.clientX + 'px';
     cursors[0].element.style.top  = e.clientY + 'px';
   }
 
-  // Fake cursors follow with delay + wobble
   cursors.forEach((c, i) => {
     if (i === 0) return;
-    
     const delay = 40 + i * 6;
     const wobble = Math.sin(Date.now() * 0.002 + i) * 14;
 
@@ -96,29 +190,30 @@ document.addEventListener('mousemove', (e) => {
   });
 });
 
-// ================== CLICK = CURSOR + CONFETTI ==================
 document.addEventListener('click', (e) => {
   cursorCount++;
   countDisplay.textContent = `Cursors: ${cursorCount}`;
 
-  // 1. Spawn new cursed cursor
+  // After 2 clicks → hide big text, show small version
+  if (cursorCount === 2) {
+    instruction.classList.add('small');
+    instruction.textContent = "keep clicking...";
+  }
+
+  // Spawn new cursor
   const newCursor = document.createElement('div');
   newCursor.className = 'cursor';
-  
   const offsetX = (Math.random() - 0.5) * 100;
   const offsetY = (Math.random() - 0.5) * 100;
-  
   newCursor.style.left = e.clientX + 'px';
   newCursor.style.top  = e.clientY + 'px';
 
   document.body.appendChild(newCursor);
-
   cursors.push({ element: newCursor, offsetX, offsetY });
 
-  // 2. Confetti explosion!
+  // Confetti
   const colors = ['#ff0', '#f0f', '#0ff', '#ff69b4', '#00ff9d', '#fff200', '#ff3366'];
 
-  // Big central burst
   confetti({
     particleCount: 80,
     spread: 100,
@@ -128,7 +223,6 @@ document.addEventListener('click', (e) => {
     ticks: 500
   });
 
-  // Side sprays
   confetti({
     particleCount: 40,
     angle: 60,
@@ -144,18 +238,9 @@ document.addEventListener('click', (e) => {
     origin: { x: (e.clientX + 100) / window.innerWidth, y: e.clientY / window.innerHeight },
     colors
   });
-
-  // Optional mercy (uncomment if you want oldest cursors to disappear after ~120)
-  /*
-  if (cursors.length > 120) {
-    const oldest = cursors.shift();
-    oldest.element.classList.add('fade-out');
-    setTimeout(() => oldest.element.remove(), 2200);
-  }
-  */
 });
 
-// Mobile/touch support
+// Mobile support
 document.addEventListener('touchstart', (e) => {
   e.preventDefault();
   const touch = e.touches[0];
