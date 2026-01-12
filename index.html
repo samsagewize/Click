@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Cursor Chaos Clicker</title>
+<title>Cursor + Confetti + Maze Chaos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
@@ -32,19 +32,17 @@
     position: absolute;
     width: 38px;
     height: 38px;
-    pointer-events: auto;
+    pointer-events: none;
     background: url('https://cur.cursors-4u.net/cursors/cur-9/cur817.cur') no-repeat center center;
     background-size: contain;
     transform: translate(-50%, -50%);
     z-index: 9999;
     will-change: transform;
-    transition: opacity 0.8s, transform 1.2s ease-out;
+    transition: opacity 2s ease-out;
   }
 
-  .cursor.falling {
-    transform: translate(-50%, 200vh) rotate(720deg) !important;
+  .cursor.fade-out {
     opacity: 0;
-    pointer-events: none;
   }
 
   #instruction {
@@ -74,67 +72,32 @@
   .count {
     position: fixed;
     top: 20px;
-    right: 140px;
+    right: 80px;
     color: #fff;
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: bold;
-    text-shadow: 0 0 15px #f0f, 0 0 35px #0ff;
+    text-shadow: 0 0 15px #f0f, 0 0 30px #0ff;
     z-index: 10000;
     pointer-events: none;
   }
 
   #maze-toggle {
     position: fixed;
-    top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 20px;
+    right: 20px;
     z-index: 10001;
-    padding: 10px 24px;
-    background: rgba(0,255,255,0.25);
+    padding: 8px 16px;
+    background: rgba(0,255,255,0.2);
     border: 2px solid #0ff;
     color: #0ff;
     font-weight: bold;
-    font-size: 1.1rem;
     cursor: pointer;
-    border-radius: 8px;
-    backdrop-filter: blur(6px);
-    box-shadow: 0 0 15px rgba(0,255,255,0.5);
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
   }
 
   #maze-toggle:hover {
-    background: rgba(0,255,255,0.45);
-  }
-
-  #screenshot-overlay, #milestone-popup {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.88);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 10002;
-    color: #fff;
-    font-size: 4.5rem;
-    font-weight: bold;
-    text-align: center;
-    text-shadow: 0 0 30px #f0f, 0 0 60px #0ff;
-    padding: 30px;
-  }
-
-  #milestone-popup span {
-    animation: pulse 1.8s infinite;
-    display: block;
-  }
-
-  @keyframes pulse {
-    0%,100% { transform: scale(1); }
-    50%     { transform: scale(1.06); }
-  }
-
-  #milestone-popup .small-text {
-    font-size: 2.2rem;
-    margin-top: 20px;
-    opacity: 0.9;
+    background: rgba(0,255,255,0.4);
   }
 </style>
 </head>
@@ -147,21 +110,6 @@
 
 <div id="instruction">click everywhere...<br>embrace the chaos</div>
 
-<!-- Screenshot overlay -->
-<div id="screenshot-overlay">
-  <span id="screenshot-text">CLICKED 0 TIMES</span>
-</div>
-
-<!-- 1000 clicks celebration popup -->
-<div id="milestone-popup">
-  <span>Congratulations!</span>
-  <div class="small-text">You clicked 1000 times!<br>Go buy more 🤑</div>
-</div>
-
-<audio id="ding" preload="auto">
-  <source src="https://assets.codepen.io/605876/coin-ding.mp3" type="audio/mpeg">
-</audio>
-
 <script>
 // ── Variables ───────────────────────────────────────────────
 let cursorCount = 1;
@@ -171,12 +119,8 @@ const cursors = [];
 const mazeCanvas = document.getElementById('maze');
 const ctx = mazeCanvas.getContext('2d');
 let mazeVisible = true;
-const screenshotOverlay = document.getElementById('screenshot-overlay');
-const screenshotText = document.getElementById('screenshot-text');
-const milestonePopup = document.getElementById('milestone-popup');
-const dingSound = document.getElementById('ding');
 
-// ── Maze ────────────────────────────────────────────────────
+// ── Maze Generation (simple recursive division) ─────────────
 function resizeMaze() {
   mazeCanvas.width = window.innerWidth;
   mazeCanvas.height = window.innerHeight;
@@ -188,45 +132,46 @@ function drawMaze() {
 
   const w = mazeCanvas.width;
   const h = mazeCanvas.height;
-  const cell = 40;
+  const cellSize = 40;
   ctx.strokeStyle = '#00ffff';
   ctx.lineWidth = 2;
-  ctx.shadowBlur = 12;
+  ctx.shadowBlur = 10;
   ctx.shadowColor = '#0ff';
 
-  for (let x = 0; x < w; x += cell) {
-    for (let y = 0; y < h; y += cell) {
-      if (Math.random() > 0.35) {
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + cell * (Math.random() > 0.5 ? 1 : -1), y + cell);
-        ctx.stroke();
-      }
+  // Very simple random maze-like lines
+  for (let x = 0; x < w; x += cellSize) {
+    for (let y = 0; y < h; y += cellSize) {
       if (Math.random() > 0.4) {
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x + cell, y + cell * (Math.random() > 0.5 ? 1 : -1));
+        ctx.lineTo(x + cellSize, y + cellSize * (Math.random() > 0.5 ? 1 : -1));
+        ctx.stroke();
+      }
+      if (Math.random() > 0.5) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + cellSize * (Math.random() > 0.5 ? 1 : -1), y + cellSize);
         ctx.stroke();
       }
     }
   }
 }
 
-window.addEventListener('resize', resizeMazeAndDraw);
-function resizeMazeAndDraw() {
+window.addEventListener('resize', () => {
   resizeMaze();
   drawMaze();
-}
-resizeMazeAndDraw();
+});
+resizeMaze();
+drawMaze();
 
-// Maze Toggle
+// ── Toggle Maze ─────────────────────────────────────────────
 document.getElementById('maze-toggle').addEventListener('click', () => {
   mazeVisible = !mazeVisible;
   document.getElementById('maze-toggle').textContent = `Maze: ${mazeVisible ? 'ON' : 'OFF'}`;
   mazeCanvas.style.opacity = mazeVisible ? '0.25' : '0';
 });
 
-// Cursor Movement
+// ── Cursor Logic ────────────────────────────────────────────
 document.addEventListener('mousemove', (e) => {
   if (cursors.length > 0) {
     cursors[0].element.style.left = e.clientX + 'px';
@@ -245,40 +190,17 @@ document.addEventListener('mousemove', (e) => {
   });
 });
 
-// Main Click Handler
 document.addEventListener('click', (e) => {
-  if (e.target.closest('#screenshot-overlay, #maze-toggle, #milestone-popup')) return;
-
   cursorCount++;
   countDisplay.textContent = `Cursors: ${cursorCount}`;
 
+  // After 2 clicks → hide big text, show small version
   if (cursorCount === 2) {
     instruction.classList.add('small');
     instruction.textContent = "keep clicking...";
   }
 
-  // Every 10 clicks → sound
-  if (cursorCount % 10 === 0) {
-    dingSound.currentTime = 0;
-    dingSound.volume = 0.7;
-    dingSound.play().catch(() => {});
-  }
-
-  // 1000 clicks → BIG CELEBRATION POPUP
-  if (cursorCount === 1000) {
-    milestonePopup.style.display = 'flex';
-    // Mega confetti
-    confetti({
-      particleCount: 200,
-      spread: 120,
-      startVelocity: 60,
-      origin: { y: 0.6 }
-    });
-    setTimeout(() => {
-      milestonePopup.style.display = 'none';
-    }, 6000);
-  }
-
+  // Spawn new cursor
   const newCursor = document.createElement('div');
   newCursor.className = 'cursor';
   const offsetX = (Math.random() - 0.5) * 100;
@@ -286,20 +208,12 @@ document.addEventListener('click', (e) => {
   newCursor.style.left = e.clientX + 'px';
   newCursor.style.top  = e.clientY + 'px';
 
-  newCursor.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    showScreenshot();
-    newCursor.classList.add('falling');
-    setTimeout(() => newCursor.remove(), 1500);
-    const index = cursors.findIndex(c => c.element === newCursor);
-    if (index > -1) cursors.splice(index, 1);
-  });
-
   document.body.appendChild(newCursor);
   cursors.push({ element: newCursor, offsetX, offsetY });
 
-  // Regular confetti
+  // Confetti
   const colors = ['#ff0', '#f0f', '#0ff', '#ff69b4', '#00ff9d', '#fff200', '#ff3366'];
+
   confetti({
     particleCount: 80,
     spread: 100,
@@ -308,6 +222,7 @@ document.addEventListener('click', (e) => {
     colors,
     ticks: 500
   });
+
   confetti({
     particleCount: 40,
     angle: 60,
@@ -315,6 +230,7 @@ document.addEventListener('click', (e) => {
     origin: { x: (e.clientX - 100) / window.innerWidth, y: e.clientY / window.innerHeight },
     colors
   });
+
   confetti({
     particleCount: 40,
     angle: 120,
@@ -324,20 +240,8 @@ document.addEventListener('click', (e) => {
   });
 });
 
-// Screenshot
-function showScreenshot() {
-  screenshotText.textContent = `CLICKED ${cursorCount} TIMES!`;
-  screenshotOverlay.style.display = 'flex';
-  setTimeout(() => screenshotOverlay.style.display = 'none', 4000);
-}
-
-screenshotOverlay.addEventListener('click', () => {
-  screenshotOverlay.style.display = 'none';
-});
-
-// Mobile
+// Mobile support
 document.addEventListener('touchstart', (e) => {
-  if (e.target.closest('#screenshot-overlay, #maze-toggle, #milestone-popup')) return;
   e.preventDefault();
   const touch = e.touches[0];
   const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
